@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>Карта курса</title>
+
+    <!-- Babylon.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+    <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+    <script src="https://cdn.babylonjs.com/recast.js"></script>
+    <script src="https://cdn.babylonjs.com/ammo.js"></script>
+    <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+    <script src="https://cdn.babylonjs.com/cannon.js"></script>
+    <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+    <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+    <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+    <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+    <style>
+      html,
+      body {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      #canvasZone {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+      var canvas = document.getElementById("renderCanvas");
+
+      var startRenderLoop = function (engine, canvas) {
+        engine.runRenderLoop(function () {
+          if (sceneToRender && sceneToRender.activeCamera) {
+            sceneToRender.render();
+          }
+        });
+      };
+
+      var engine = null;
+      var scene = null;
+      var sceneToRender = null;
+      var createDefaultEngine = function () {
+        return new BABYLON.Engine(canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true,
+          disableWebGL2Support: false,
+        });
+      };
+      var titels = ["Карта курса"];
+
+      var questions = [];
+
+      var answers = [];
+
+      var rightAnswers = [1, 3, 1];
+
+      var finalResult = 0;
+
+      var practice = [
+        "index.html",
+        "lesson1.html",
+        "lesson2.html",
+        "lesson3.html",
+        "lesson4.html",
+        "questions1.html",
+        "https://playground.babylonjs.com/#FS3A0A#1",
+        "https://playground.babylonjs.com/#F9VUVG#1",
+        "https://playground.babylonjs.com/#MM0QZ9",
+        "https://playground.babylonjs.com/#O6CF9U",
+        "index2.html",
+        "lesson2.1.html",
+        "bfs.html",
+        "dfs.html",
+        "questions2.html",
+        "https://playground.babylonjs.com/#2ZPI4F#1",
+        "https://playground.babylonjs.com/#80CXMF",
+        "index3.html",
+        "checkforeulerpath.html",
+        "findeulerpath.html",
+        "deicstra.html",
+        "fordbellman.html",
+        "floiduorshell.html",
+        "questions3.html",
+        "https://playground.babylonjs.com/#DCHPMS#1",
+        "https://playground.babylonjs.com/#JJL77C",
+        "https://playground.babylonjs.com/#2A5K1K",
+        "https://playground.babylonjs.com/#T6GIOK",
+      ];
+
+      var practiceTitle = [
+        "Введение",
+        "Основные части графа",
+        "Взвешенность и ориентированность",
+        "Машинные представления графа №1",
+        "Машинные представления графа №2",
+        "Тестирование №1",
+        "Практическое задание: невзвешенный неориентированный граф",
+        "Практическое задание: невзвешенный ориентированный граф",
+        "Практическое задание: взвешенный неориентированный граф",
+        "Практическое задание: взвешенный ориентированный граф",
+        "Алгоритмы на графах",
+        "Маршруты в графах",
+        "Поиск в ширину",
+        "Поиск в глубину",
+        "Тестирование №2",
+        "Практическое задание: просмотр визуализации BFS",
+        "Практическое задание: просмотр визуализации DFS",
+        "Пути в графах",
+        "Эйлеров путь: проверка графа на эйлеровость",
+        "Эйлеров путь: нахождение эйлерового пути и/или цикла",
+        "Алгоритм Дейкстры",
+        "Алгоритм Форда-Беллмана",
+        "Алгоритм Флойда-Уоршелла",
+        "Тестирование №3",
+        "Практическое задание: проверка графа на наличие эйлеровых пути и цикла",
+        "Практическое задание: алгоритм Дейкстры",
+        "Практическое задание: алгоритм Форда-Беллмана",
+        "Практическое задание: алгоритм Флойда-Уоршелла",
+      ];
+
+      var practiseContent = [
+        [
+          "Дискретная математика",
+          "Комбинаторика",
+          "Теория графов",
+          "1",
+        ],
+        [
+          "Что такое граф?",
+          "Вершины",
+          "Ребра",
+          "Инцидентность",
+          "Смежность",
+          "Висячая вершина",
+          "Изолированная вершина",
+          "0",
+        ],
+        ["Какие бывают графы?", "Ориентированный граф", "Взвешенный граф", 0],
+        [
+          "Машинное представление графа",
+          "Матрица смежности",
+          "Матрица инциденций",
+          "Список ребер",
+          "Список инциденций",
+          0,
+        ],
+        [
+          "Машинное представление графа",
+          "Матрица смежности",
+          "Матрица инциденций",
+          "Список ребер",
+          "Список инциденций",
+          2,
+        ],
+        [0],
+        [0],
+        [0],
+        [0],
+        [2],
+        [
+          "Эффективность алгоритма",
+          "Сложность программы и ее оценивание",
+          "Жадные алгоритмы",
+          "Динамическое программирование",
+          "Оптимизация программ - Структуризация",
+          "Оптимизация программ - Декомпозиция",
+          "1",
+        ],
+        [
+          "Что такое маршрут в графе?",
+          "Основные части маршрута",
+          "Тривиальный маршрут",
+          "Цепи",
+          "Циклы",
+          0,
+        ],
+        [
+          "Условия и цель",
+          "Почему такое название?",
+          "Визуализация",
+          "Отслеживаемые переменные",
+          "Работа алгоритма",
+          "Пример",
+          "Сложность алгоритма",
+          "Практические задачи",
+          "Математические задачи",
+          0,
+        ],
+        [
+          "Концепция и название",
+          "Визуализация",
+          "Результат",
+          "Работа алгоритма",
+          "Пример",
+          "Сложность алгоритма",
+          "Математические задачи",
+          2,
+        ],
+        [0],
+        [0],
+        [2],
+        [
+          "Пути в графах",
+          "Маршруты во взвешенных графах",
+          "Основные алгоритмы",
+          "Циклы отрицательного веса",
+          "1",
+        ],
+        [
+          "Эйлеров путь",
+          "Задача о кенигсбергских мостах",
+          "Проверка графа на эйлеровость",
+          "Компоненты связности",
+          "Визуализация",
+          "Подсчет степеней вершин",
+          "Работа алгоритма",
+          0,
+        ],
+        [
+          "Эйлеров путь",
+          "Нахождение эйлеровых пути и цикла",
+          "Визуализация",
+          "Работа алгоритма",
+          0,
+        ],
+        [
+          "Принцип работы",
+          "Жадный алгоритм",
+          "Визуализация",
+          "Реализация",
+          "Пример",
+          "Пример",
+          "Сложность алгоритма",
+          "Применение",
+          0,
+        ],
+        [
+          "Работа алгоритма",
+          "Визуализация",
+          "Необходимые переменные",
+          "Реализация алгоритма",
+          "Восстановление путей",
+          "Сложность алгоритма",
+          "Практические задачи",
+          0,
+        ],
+        [
+          "История и наименование",
+          "Работа алгоритма",
+          "Визуализация",
+          "Необходимые переменные",
+          "Реализация алгоритма",
+          "Восстановление путей",
+          "Сложность алгоритма",
+          "Практические задачи",
+          2,
+        ],
+        [0],
+        [0],
+        [0],
+        [0],
+        [2],
+      ];
+
+      var index = 0;
+
+      var skinColor = "#e5ded6"; //"#EAEAE3""#272727""black"
+      var dark = "#222222"; //"#fde401""white""#6303F7"
+      var orange = "#FE6C21"; //"#ff652f"
+
+      var images = [
+        "https://raw.githubusercontent.com/pave228/Babylon/main/question1.png",
+      ];
+
+      var setImage = function (imageIndex, rect, width, height) {
+        var image = new BABYLON.GUI.Image("img", images[imageIndex]);
+        image.width = width;
+        image.height = height;
+        image.outlineWidth = "4px";
+        image.paddingBottom = "10px";
+        rect.addControl(image);
+      };
+
+      var preScene = function (scene) {
+        //Функция создания необходимых элементов сцены
+        var camera = new BABYLON.ArcRotateCamera(
+          "camera",
+          Math.PI / 3,
+          Math.PI / 3,
+          10,
+          BABYLON.Vector3.Zero(),
+          scene
+        );
+
+        camera.setTarget(BABYLON.Vector3.Zero());
+
+        camera.attachControl(canvas, true);
+
+        const light = new BABYLON.HemisphericLight(
+          "light",
+          new BABYLON.Vector3(0, 1, 0),
+          scene
+        );
+        light.intensity = 0.7;
+      };
+
+      var textWindowMap = function () {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var rectInput = new BABYLON.GUI.Rectangle();
+        rectInput.width = "100%";
+        rectInput.height = "100%";
+        //rectInput.cornerRadius = 10;
+        //rectInput.color = "green";
+        rectInput.thickness = 0;
+        //rectInput.background = skinColor;
+
+        var placeholder1 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_left_bottom.jpg"
+        );
+        placeholder1.width = "1352px";
+        placeholder1.height = "806px";
+        placeholder1.top = "280px";
+        placeholder1.left = "-700px";
+        placeholder1.outlineWidth = "0px";
+
+        var placeholder2 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_left_top.jpg"
+        );
+        placeholder2.width = "1227px";
+        placeholder2.height = "629px";
+        placeholder2.top = "-500px";
+        placeholder2.left = "-650px";
+        placeholder2.outlineWidth = "0px";
+
+        var placeholder3 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_right_top.jpg"
+        );
+        placeholder3.width = "1338px";
+        placeholder3.height = "960px";
+        placeholder3.top = "-400px";
+        placeholder3.left = "650px";
+        placeholder3.outlineWidth = "0px";
+
+        placeholder1.alpha = 0.1;
+        placeholder2.alpha = 0.15;
+        placeholder3.alpha = 0.1;
+        rectInput.addControl(placeholder1);
+        rectInput.addControl(placeholder2);
+        rectInput.addControl(placeholder3);
+
+        var gradientDefault = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientDefault.addColorStop(0, skinColor);
+        gradientDefault.addColorStop(1, skinColor);
+        rectInput.backgroundGradient = gradientDefault;
+
+        var title = new BABYLON.GUI.TextBlock();
+        title.width = "90%";
+        title.fontSize = "5%";
+        title.color = dark;
+        title.top = "-45%";
+        title.fontStyle = "Bold";
+        title.textWrapping = true;
+        title.text = titels[index];
+        rectInput.addControl(title);
+
+        if (index == titels.length - 1) {
+        } else if (index < titels.length - 1) {
+        } else {
+        }
+
+        var buttonHome = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonHome",
+          "⌂"
+        );
+        buttonHome.width = "40px";
+        buttonHome.height = "40px";
+        buttonHome.fontSize = "6%";
+        buttonHome.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonHome.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonHome.top = "-20px";
+        buttonHome.thickness = 0;
+        //buttonHome.left = "20px";
+        buttonHome.color = dark;
+        //buttonHome.cornerRadius = 30;
+        buttonHome.background = skinColor;
+
+        buttonHome.onPointerClickObservable.add(function () {
+          window.open("homePage.html");
+          window.close("map.html");
+        });
+
+        var sv = new BABYLON.GUI.ScrollViewer();
+        sv.thickness = 1;
+        sv.color = dark;
+        sv.width = "90%";
+        sv.height = "75%";
+        sv.top = "10px";
+        sv.background = skinColor;
+        sv.clipChildren = false;
+        rectInput.addControl(sv);
+        rectInput.addControl(sv);
+
+        var stackV = new BABYLON.GUI.StackPanel();
+        //stackV.height = "1000%"
+        stackV.isVertical = true;
+
+        //stackV.addControl(textblock);
+        sv.addControl(stackV);
+
+        advancedTexture.addControl(rectInput);
+
+        //
+        if (index < questions.length) {
+          //setQuestion(rectInput, stackV, index);
+        } else {
+          //rectInput.addControl(buttonNext);
+          var textblock = new BABYLON.GUI.TextBlock();
+          textblock.color = dark;
+          textblock.textWrapping = true;
+
+          textblock.horizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+          textblock.verticalAlignment =
+            BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+          textblock.textHorizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+          textblock.textVerticalAlignment =
+            BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+          textblock.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+          textblock.resizeToFit = true;
+          textblock.paddingTop = "10px";
+          textblock.paddingLeft = "30px";
+          textblock.paddingRight = "20px";
+          textblock.paddingBottom = "15px";
+          textblock.fontSize = "25";
+          //stackV.addControl(textblock);
+
+          setCourseLinks(stackV);
+        }
+
+        rectInput.addControl(buttonHome);
+      };
+
+      
+      var setCourseLinks = function (rect) {
+        for (let i = 0; i < practice.length; i++) {
+          if (practiseContent[i][practiseContent[i].length - 1] == "1" ) {
+            var rectSep = new BABYLON.GUI.Rectangle();
+            rectSep.width = "100%";
+            rectSep.height = "2px";
+            //rectSep.cornerRadius = 10;
+            rectSep.background = dark;
+            rectSep.thickness = 0;  
+            //rectSep.background = skinColor;
+            rect.addControl(rectSep);
+          }
+          var rectSep = new BABYLON.GUI.Rectangle();
+          rectSep.width = "100%";
+          rectSep.height = "1px";
+          //rectSep.cornerRadius = 10;
+          rectSep.background = dark;
+          rectSep.thickness = 0;
+          //rectSep.background = skinColor;
+          rect.addControl(rectSep);
+          var buttonPractice = BABYLON.GUI.Button.CreateSimpleButton(
+            "buttonPractice",
+            ""
+          );
+          buttonPractice.width = "100%";
+          buttonPractice.height = "100px";
+          buttonPractice.fontSize = 24;
+          buttonPractice.paddingBottom = "10px";
+          buttonPractice.paddingTop = "10px";
+          buttonPractice.textHorizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          //buttonPractice.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+          //buttonPractice.top = "-20px";
+          //buttonPractice.left = "-20px";
+          buttonPractice.color = dark;
+          buttonPractice.thickness = 0;
+          //buttonPractice.cornerRadius = 20;
+          buttonPractice.background = skinColor;
+
+          var title = new BABYLON.GUI.TextBlock();
+          title.color = dark;
+          title.textWrapping = true;
+          title.text = "○ " + practiceTitle[i] + " ⇨";
+          title.horizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+          title.verticalAlignment =
+            BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+          title.textHorizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          title.textVerticalAlignment =
+            BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+          title.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+          title.resizeToFit = true;
+          title.paddingTop = "10px";
+          title.paddingLeft = "30px";
+          title.paddingRight = "20px";
+          title.paddingBottom = "15px";
+          title.fontSize = "25";
+          title.fontStyle = "Bold";
+
+          buttonPractice.addControl(title);
+
+          rect.addControl(buttonPractice);
+
+          var textblock = new BABYLON.GUI.TextBlock();
+          textblock.color = dark;
+          textblock.textWrapping = true;
+          textblock.thickness = 3;
+
+          textblock.horizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          textblock.verticalAlignment =
+            BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+          textblock.textHorizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          textblock.textVerticalAlignment =
+            BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+          textblock.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+          textblock.resizeToFit = true;
+          //textblock.top  = -500
+          //textblock.paddingTop = "10px";
+          //textblock.paddingLeft = "30px";
+          //textblock.paddingRight = "20px";
+          //textblock.paddingBottom = "150px";
+          textblock.fontSize = "25";
+
+          for (let j = 0; j < practiseContent[i].length - 1; j++) {
+            textblock.text =
+              textblock.text + "        • " + practiseContent[i][j] + "\n";
+          }
+
+          rect.addControl(textblock);
+          console.log(practiseContent[i][practiseContent[i].length - 1]);
+          /*if (practiseContent[i][practiseContent[i].length - 1] == "1") {
+            
+          }*/
+          if (practiseContent[i][practiseContent[i].length - 1] == 2) {
+            var rectSep = new BABYLON.GUI.Rectangle();
+            rectSep.width = "100%";
+            rectSep.height = "2px";
+            //rectSep.cornerRadius = 10;
+            rectSep.background = dark;
+            rectSep.thickness = 0;
+            //rectSep.background = skinColor;
+            rect.addControl(rectSep);
+          }
+          var rectSep = new BABYLON.GUI.Rectangle();
+          rectSep.width = "100%";
+          rectSep.height = "1px";
+          //rectSep.cornerRadius = 10;
+          rectSep.background = dark;
+          rectSep.thickness = 0;
+          //rectSep.background = skinColor;
+          rect.addControl(rectSep);
+
+          buttonPractice.onPointerClickObservable.add(function () {
+            window.open(practice[i]);
+            window.close("map.html");
+          });
+        }
+      };
+
+      var isInfoOpen = false;
+      var infoButton = function () {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var buttonInfo = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonInfo",
+          "i"
+        );
+        buttonInfo.width = "50px";
+        buttonInfo.height = "50px";
+        buttonInfo.fontSize = "5%";
+        buttonInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        buttonInfo.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonInfo.top = "20px";
+        buttonInfo.left = "20px";
+        buttonInfo.color = "#f7f0eb";
+        buttonInfo.cornerRadius = 25;
+        buttonInfo.fontStyle = "Bold";
+        buttonInfo.background = dark;
+        advancedTexture.addControl(buttonInfo);
+
+        var rectInfo = new BABYLON.GUI.Rectangle();
+        rectInfo.width = "600px";
+        rectInfo.height = "95%";
+        rectInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        rectInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        rectInfo.thickness = 0;
+        rectInfo.background = dark;
+        rectInfo.isVisible = isInfoOpen;
+
+        advancedTexture.addControl(rectInfo);
+
+        var controls = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/controls.png"
+        );
+        controls.width = "560px";
+        controls.height = "1475px";
+        //controls.top = "-400px";
+        //controls.left = "650px";
+        controls.outlineWidth = "0px";
+
+        var sv = new BABYLON.GUI.ScrollViewer();
+        sv.thickness = 3;
+        sv.color = dark;
+        sv.width = "98%";
+        sv.height = "98%";
+        //sv.top = "10px";
+        sv.background = dark;
+        sv.clipChildren = false;
+        rectInfo.addControl(sv);
+        rectInfo.addControl(sv);
+
+        var stackV = new BABYLON.GUI.StackPanel();
+        stackV.isVertical = true;
+
+        stackV.addControl(controls);
+        sv.addControl(stackV);
+
+        buttonInfo.onPointerClickObservable.add(function () {
+          if (isInfoOpen == 0) {
+            buttonInfo.isVisible = false;
+            isInfoOpen = true;
+            infoButton();
+            rectInfo.isVisible = false;
+
+            console.log(isInfoOpen);
+          } else {
+            buttonInfo.isVisible = false;
+            isInfoOpen = false;
+            infoButton();
+            rectInfo.isVisible = false;
+
+            console.log(isInfoOpen);
+          }
+        });
+      };
+
+      var createScene = function () {
+        //Функция выполнения логики программы
+        const scene = new BABYLON.Scene(engine);
+        preScene(scene);
+        textWindowMap();
+
+        infoButton();
+        return scene;
+      };
+      window.initFunction = async function () {
+        var asyncEngineCreation = async function () {
+          try {
+            return createDefaultEngine();
+          } catch (e) {
+            console.log(
+              "the available createEngine function failed. Creating the default engine instead"
+            );
+            return createDefaultEngine();
+          }
+        };
+
+        window.engine = await asyncEngineCreation();
+        if (!engine) throw "engine should not be null.";
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();
+      };
+      initFunction().then(() => {
+        sceneToRender = scene;
+      });
+
+      // Resize
+      window.addEventListener("resize", function () {
+        engine.resize();
+      });
+    </script>
+  </body>
+</html>

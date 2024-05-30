@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>Эйлеров путь №2</title>
+
+    <!-- Babylon.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+    <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+    <script src="https://cdn.babylonjs.com/recast.js"></script>
+    <script src="https://cdn.babylonjs.com/ammo.js"></script>
+    <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+    <script src="https://cdn.babylonjs.com/cannon.js"></script>
+    <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+    <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+    <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+    <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+    <style>
+      html,
+      body {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      #canvasZone {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+      var canvas = document.getElementById("renderCanvas");
+
+      var startRenderLoop = function (engine, canvas) {
+        engine.runRenderLoop(function () {
+          if (sceneToRender && sceneToRender.activeCamera) {
+            sceneToRender.render();
+          }
+        });
+      };
+
+      var engine = null;
+      var scene = null;
+      var sceneToRender = null;
+      var createDefaultEngine = function () {
+        return new BABYLON.Engine(canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true,
+          disableWebGL2Support: false,
+        });
+      };
+      var titels = [
+        "Эйлеров путь",
+        "Нахождение эйлерового пути",
+        "Визуализация",
+        "Работа алгоритма",
+        "Заключение",
+      ];
+      var texts = [
+        "   Эйлеров путь (эйлерова цепь) в графе – это путь, проходящий по всем рёбрам графа и притом только по одному разу.\n   Эйлеров цикл – эйлеров путь, являющийся циклом, то есть замкнутый путь, проходящий через каждое ребро графа ровно по одному разу.\n   Полуэйлеров граф – граф, в котором существует эйлеров путь.\n   Эйлеров граф – граф, в котором существует эйлеров цикл.",
+        "   Алгоритм нахождения эйлеровых пути или цикла состоит из нескольких этапов:\n   • нахождение стартовой для алгоритма вершины с нечетной степенью (так как в случае наличия таковых, граф является полуэйлеровым, следовательно имеет лишь путь, но не цкил, в следствии чего имеет тупики, в которых данный путь нужно закончить);\n   • нахождение стартовой для алгоритма вершины с ненулевой степенью (срабатывает лишь в случае эйлерового графа, в котром нет вершин нечетной степени);\n   • поиск эйлеровых пути и/или цикла.",
+        "   Визуализация разделена на 3 этапа. На первом и втором показаны степени вершин графа. Если степень не подходит для начала работы алгоритма, она помечается фиолетовым цветом, иначе - зеленым. На третьем этапе фиолетовым помечаются вершины и ребра, которые записаны в стэк (отдельно телесным цветом помечается крайняя вершина стэка), красным - вершина, у которой проверяется смежность с рассматриваемой в итерации вершиной (телесной), зеленым - вершины и ребра, окончательно записанные в конечный эйлеров путь.",
+        "   Глобально создется копия исходной матрицы смежности – matrixSmClone.\n   В начале функции объявляется переменная v, изначально равная -1, обозначающая вершину, от которой начнется поиск. При помощи цикла for перебираются все вершины. При нахождении вершины нечетной степени, ее номер записывается в переменную v, после чего цикл прерывается. Если после этого v все еще равен -1, посредством цикла происходит повторный перебор вершин, но в этом случае ищется компонента связанности. Условием ее нахождения является вершина с ненулевой степенью, при обнаружении которой в переменную v, после чего цикл прерывается.\n   Такое условие нахождения первой обрабатываемой вершины необходимо для избежания попадания алгоритма в тупик в случае полуэйлерового графа.\n   Далее создается массив S, обозначающий стэк обрабатываемых алгоритмом вершин, в который записывается v. Алгоритм работает пока стэк не опустеет. Создаются две переменные: w – вершина, рассматриваимая в каждую иттерацию алгоритма, и found_edge, обозначающая нахождения нового смежного с w ребра. В переменную w записывается крайний элемент массива S, а значение found_edge устанавливается на false. Посредством цикла происходит перебор вершин графа. При нахождении смежной по клону матрицы смежности с w вершины, она записывается в стэк, из matrixSmClone удаляется инцидентное ребро, значение found_edge устанавливается на true и цикл прерывается.\n   Если цикл полностью перебрал вершины, но не нашел новой вершины, то крайний элемент стэка удаляется, а рассматриваемое в иттерации значение w выводится в консоль в качестве точки маршрута эйлерового пути.",
+        "   Предлагаем вам просмотреть дальнейшую визуализацию работы алгоритма самостоятельно.",
+      ];
+      var index = 0;
+      var isVisibleAfter = true;
+
+      var matrixSm = [
+        [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0],
+        [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+        [0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
+      ];
+
+      var matrixSmClone = matrixSm;
+
+      console.log(matrixSmClone);
+
+      var quantity = matrixSm.length;
+      var spheres = [];
+      var spheresXs = [];
+      var spheresYs = [];
+      var spheresZs = [];
+
+      var degreesRects = [];
+      var degreesLabels = [];
+
+      var targets = [];
+      var lines = [];
+      var dragBehaviors = [];
+      var rectsPopUp = [];
+      var linesPopUp = [];
+      var labelsPopUp = [];
+      let isPopUpsShown = true;
+
+      var skinColor = "#e5ded6"; //"#EAEAE3""#272727""black"
+      var dark = "#222222"; //"#fde401""white""#6303F7"
+      var orange = "#FE6C21"; //"#ff652f"
+      var green = "#3DD085"; //"#07ef93"
+      var purple = "#BF4DEB";
+      var yellow = "#FFBE98";
+
+      var images = [
+        "https://raw.githubusercontent.com/pave228/Babylon/main/findeulerpath.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/bridges.png",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/degrees.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/checkforeulerspath.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/findeulerpathdiag.png",
+      ];
+
+      var setImage = function (imageIndex, rect, width, height) {
+        var image = new BABYLON.GUI.Image("img", images[imageIndex]);
+        image.width = width;
+        image.height = height;
+        image.outlineWidth = "4px";
+
+        rect.addControl(image);
+      };
+
+      var preScene = function (scene) {
+        //Функция создания необходимых элементов сцены
+        var camera = new BABYLON.ArcRotateCamera(
+          "camera",
+          Math.PI / 3,
+          Math.PI / 3,
+          10,
+          BABYLON.Vector3.Zero(),
+          scene
+        );
+
+        camera.setTarget(BABYLON.Vector3.Zero());
+
+        camera.position = new BABYLON.Vector3(1000, 0, -1000);
+
+        camera.attachControl(canvas, true);
+        camera.panningSensibility = 15;
+
+        const light = new BABYLON.HemisphericLight(
+          "light",
+          new BABYLON.Vector3(0, 1, 0),
+          scene
+        );
+        light.intensity = 0.7;
+      };
+
+      var degrees = [];
+
+      var finished = [];
+      var visited = [];
+      for (let i = 0; i < quantity; i++) {
+        visited[i] = 0;
+      }
+      var result = [];
+
+      function degreesCheck() {
+        for (let i = 0; i < quantity; i++) {
+          let deg = 0;
+          for (let j = 0; j < quantity; j++) {
+            if (matrixSm[i][j] == 1) {
+              deg++;
+            }
+          }
+          degrees[i] = deg;
+        }
+        console.log(degrees);
+      }
+
+      function degreesCheckVisualisation() {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        for (let i = 0; i < quantity; i++) {
+          let deg = 0;
+          for (let j = 0; j < quantity; j++) {
+            if (matrixSm[i][j] == 1) {
+              deg++;
+            }
+          }
+          degrees[i] = deg;
+          var rect1 = new BABYLON.GUI.Rectangle();
+          rect1.width = "30px";
+          rect1.height = "30px";
+          rect1.background = skinColor;
+          rect1.color = dark;
+          rect1.outlineWidth = 3;
+          degreesRects[i] = rect1;
+          advancedTexture.addControl(degreesRects[i]);
+          degreesRects[i].linkWithMesh(spheres[i]);
+          degreesRects[i].linkOffsetY = -40;
+
+          var label = new BABYLON.GUI.TextBlock();
+          label.text = degrees[i];
+          label.color = dark;
+          degreesLabels[i] = label;
+
+          degreesRects[i].addControl(degreesLabels[i]);
+        }
+        console.log(degrees);
+
+        var diagramm = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/findeulerpathdiag.png"
+        );
+        diagramm.width = "510px";
+        diagramm.height = "470px";
+        diagramm.left = 10;
+        diagramm.top = -100;
+        //diagramm.top = "280px";
+        //diagramm.left = "-700px";
+        diagramm.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        diagramm.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        diagramm.outlineWidth = "0px";
+
+        advancedTexture.addControl(diagramm);
+      }
+
+      var depthFirstSearch = function (v) {
+        result.push(v);
+        visited[v] = 1;
+        for (let i = 0; i < quantity; i++) {
+          if (matrixSm[v][i] != 0 && visited[i] == 0) {
+            depthFirstSearch(i);
+          }
+          if (result[result.length - 1] != v) {
+            result.push(v);
+          }
+        }
+        //console.log(result)
+      };
+
+      function checkForEulerPath() {
+        let oddVertex = 0;
+        degreesCheck();
+
+        for (let i = 0; i < quantity; i++) {
+          if (degrees[i] % 2 == 1) {
+            oddVertex++;
+          }
+        }
+
+        if (oddVertex > 2) {
+          // если количество вершин с нечетной степенью больше двух, то граф не является эйлеровым
+          console.log(false);
+          return false;
+        }
+
+        for (let i = 0; i < quantity; i++) {
+          if (degrees[i] > 0) {
+            depthFirstSearch(i);
+            break;
+          }
+        }
+
+        for (let i = 0; i < quantity; i++) {
+          if (degrees[i] > 0 && visited[i] == 0) {
+            // если количество компонент связности, содержащие ребра, больше одной,
+            console.log(false);
+            return false;
+          }
+        }
+
+        console.log(true);
+        if (oddVertex == 0) {
+          console.log("Эйлеров");
+        } else {
+          console.log("Полуэйлеров");
+        }
+        return true;
+      }
+
+      function findEulerPath() {
+        // если граф является полуэйлеровым, то алгоритм следует запускать из вершины нечетной степени
+        let v = -1;
+        for (let i = 0; i < quantity; i++) {
+          if (degrees[i] % 2 == 1) {
+            v = i;
+            console.log("start", v + 1);
+            break;
+          }
+        }
+
+        if (v == -1) {
+          for (let i = 0; i < quantity; i++) {
+            if (degrees[i] > 0) {
+              v = i;
+              console.log("start", v + 1);
+              break;
+            }
+          }
+        }
+
+        const S = []; // S — стек
+        S.push(v);
+
+        while (S.length !== 0) {
+          const w = S[S.length - 1];
+          let found_edge = false;
+
+          for (let i = 0; i < quantity; i++) {
+            if (matrixSmClone[w][i] == 1) {
+              S.push(i);
+              matrixSmClone[w][i] = 0;
+              matrixSmClone[i][w] = 0;
+              found_edge = true;
+              break;
+            }
+          }
+
+          if (!found_edge) {
+            S.pop(); // не нашлось инцидентных вершине w рёбер, по которым ещё не прошли
+            console.log(w + 1);
+          }
+        }
+      }
+
+      function findEulerPathVisualisation() {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var buttonNextLink = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonNextLink",
+          "Алгоритм Дейкстры ⇨"
+        );
+
+        buttonNextLink.width = "200px";
+        buttonNextLink.height = "50px";
+        buttonNextLink.fontSize = "2.5%";
+        buttonNextLink.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonNextLink.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        buttonNextLink.top = "50px";
+        buttonNextLink.left = "-20px";
+        buttonNextLink.color = dark;
+        //buttonNextLink.cornerRadius = 20;
+        buttonNextLink.background = skinColor;
+        //buttonNextLink.isVisible = false;
+        buttonNextLink.thickness = 1;
+
+        buttonNextLink.onPointerClickObservable.add(function () {
+          window.open("deicstra.html");
+          window.close("checkforeulerpath.html");
+        });
+
+        advancedTexture.addControl(buttonNextLink);
+
+        var gradientRed = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientRed.addColorStop(0, orange);
+        gradientRed.addColorStop(1, orange);
+
+        var gradientGreen = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientGreen.addColorStop(0, green);
+        gradientGreen.addColorStop(1, green);
+
+        var gradientDefault = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientDefault.addColorStop(0, skinColor);
+        gradientDefault.addColorStop(1, skinColor);
+
+        var gradientPurple = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientPurple.addColorStop(0, purple);
+        gradientPurple.addColorStop(1, purple);
+
+        var gradientYellow = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientYellow.addColorStop(0, yellow);
+        gradientYellow.addColorStop(1, yellow);
+
+        var rectInfo = new BABYLON.GUI.Rectangle();
+        rectInfo.width = "450px";
+        rectInfo.height = "200px";
+        //rectInfo.cornerRadius = 10;
+        rectInfo.color = dark;
+        rectInfo.thickness = 1;
+        rectInfo.background = skinColor;
+        rectInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        rectInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        //rectInfo.paddingLeftInPixels = 200;
+
+        advancedTexture.addControl(rectInfo);
+
+        var textblockInfo = new BABYLON.GUI.TextBlock();
+        textblockInfo.color = dark;
+        textblockInfo.textWrapping = true;
+
+        textblockInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        textblockInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        textblockInfo.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        textblockInfo.textVerticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        textblockInfo.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+        textblockInfo.resizeToFit = true;
+        textblockInfo.paddingLeft = "10px";
+        textblockInfo.paddingRight = "20px";
+        textblockInfo.paddingBottom = "15px";
+        textblockInfo.fontSize = "20";
+
+        updateInfo(rectInfo, textblockInfo, textblockInfo.text);
+
+        rectInfo.addControl(textblockInfo);
+
+        var buttonNextStepRed = BABYLON.GUI.Button.CreateSimpleButton(
+          "butNextStep",
+          "⇨"
+        );
+        buttonNextStepRed.width = "40px";
+        buttonNextStepRed.height = "40px";
+        buttonNextStepRed.fontSize = "6%";
+        buttonNextStepRed.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonNextStepRed.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonNextStepRed.top = "-20px";
+        buttonNextStepRed.left = "-20px";
+        buttonNextStepRed.color = dark;
+        //buttonNextStepRed.cornerRadius = 20;
+        buttonNextStepRed.background = "#f7f0eb";
+        buttonNextStepRed.thickness = 0;
+
+        advancedTexture.addControl(buttonNextStepRed);
+
+        var buttonNextStepBlue = BABYLON.GUI.Button.CreateSimpleButton(
+          "butNextStep",
+          "⇨"
+        );
+        buttonNextStepBlue.width = "40px";
+        buttonNextStepBlue.height = "40px";
+        buttonNextStepBlue.fontSize = "6%";
+        buttonNextStepBlue.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonNextStepBlue.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonNextStepBlue.top = "-20px";
+        buttonNextStepBlue.left = "-20px";
+        buttonNextStepBlue.color = dark;
+        //buttonNextStepBlue.cornerRadius = 20;
+        buttonNextStepBlue.background = "#f7f0eb";
+        buttonNextStepBlue.thickness = 0;
+        buttonNextStepBlue.isVisible = false;
+
+        advancedTexture.addControl(buttonNextStepBlue);
+
+        var buttonNextStepGreen = BABYLON.GUI.Button.CreateSimpleButton(
+          "butNextStep",
+          "⇨"
+        );
+        buttonNextStepGreen.width = "40px";
+        buttonNextStepGreen.height = "40px";
+        buttonNextStepGreen.fontSize = "6%";
+        buttonNextStepGreen.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonNextStepGreen.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonNextStepGreen.top = "-20px";
+        buttonNextStepGreen.left = "-20px";
+        buttonNextStepGreen.color = dark;
+        //buttonNextStepGreen.cornerRadius = 20;
+        buttonNextStepGreen.background = "#f7f0eb";
+        buttonNextStepGreen.thickness = 0;
+        buttonNextStepGreen.isVisible = false;
+
+        advancedTexture.addControl(buttonNextStepGreen);
+
+        /*for (let i = 0; i < quantity; i++) {
+          for (let j = 0; j < quantity; j++) {
+            lines[i][j].isVisible = false;
+          }
+        }*/
+        // если граф является полуэйлеровым, то алгоритм следует запускать из вершины нечетной степени
+        let v = -1;
+        const S = []; // S — стек
+        degreesCheckVisualisation();
+        let i = -1;
+
+        buttonNextStepRed.onPointerClickObservable.add(function () {
+          i++;
+          textblockInfo.text =
+            "Поиск начальной вершины\nЕсли граф является полуэйлеровым, то алгоритм следует запускать из вершины нечетной степени";
+          updateInfo(rectInfo, textblockInfo, textblockInfo.text);
+          if (i > quantity - 1) {
+            resetNodes();
+            for (let j = 0; j < quantity; j++) {
+              rectsPopUp[j].backgroundGradient = gradientDefault;
+              degreesRects[j].backgroundGradient = gradientDefault;
+              //degreesRects[j].isVisible = false;
+            }
+            buttonNextStepBlue.isVisible = true;
+            buttonNextStepRed.isVisible = false;
+          }
+          rectsPopUp[i].backgroundGradient = gradientPurple;
+          degreesRects[i].backgroundGradient = rectsPopUp[i].backgroundGradient;
+          if (degrees[i] % 2 == 1) {
+            resetNodes();
+            for (let j = 0; j < quantity; j++) {
+              rectsPopUp[j].backgroundGradient = gradientDefault;
+              degreesRects[j].backgroundGradient = gradientDefault;
+              //degreesRects[j].isVisible = false;
+            }
+            v = i;
+            S.push(v);
+            textblockInfo.text =
+              "Нашлась вершина с нечетной степенью - " + (v + 1);
+
+            updateInfo(rectInfo, textblockInfo, textblockInfo.text);
+            rectsPopUp[i].backgroundGradient = gradientGreen;
+            degreesRects[i].backgroundGradient =
+              rectsPopUp[i].backgroundGradient;
+
+            console.log("start", v + 1);
+
+            buttonNextStepGreen.isVisible = true;
+
+            buttonNextStepRed.isVisible = false;
+          }
+        });
+
+        let b = -1;
+
+        buttonNextStepBlue.onPointerClickObservable.add(function () {
+          b++;
+          textblockInfo.text =
+            "Вершины нечетной степени отсутствуют.\nПоиск начальной вершины с ненулевой степенью";
+
+          updateInfo(rectInfo, textblockInfo, textblockInfo.text);
+          rectsPopUp[b].backgroundGradient = gradientPurple;
+          degreesRects[b].backgroundGradient = rectsPopUp[b].backgroundGradient;
+          if (degrees[b] > 0) {
+            resetNodes();
+            for (let j = 0; j < quantity; j++) {
+              rectsPopUp[j].backgroundGradient = gradientDefault;
+              degreesRects[j].backgroundGradient = gradientDefault;
+              //degreesRects[j].isVisible = false;
+            }
+            v = b;
+
+            S.push(v);
+            textblockInfo.text =
+              "Нашлась вершина с ненулевой степенью - " + (v + 1);
+            updateInfo(rectInfo, textblockInfo, textblockInfo.text);
+            console.log("start", v + 1);
+            rectsPopUp[b].backgroundGradient = gradientGreen;
+            degreesRects[b].backgroundGradient =
+              rectsPopUp[b].backgroundGradient;
+            buttonNextStepGreen.isVisible = true;
+
+            buttonNextStepBlue.isVisible = false;
+          }
+        });
+
+        //while (S.length !== 0) {
+        //let c = -1;
+        let j = -1;
+        let way = [];
+        let gradients = [];
+        for (let c = 0; c < quantity; c++) {
+          gradients[c] = 0;
+        }
+
+        buttonNextStepGreen.onPointerClickObservable.add(function () {
+          for (let c = 0; c < quantity; c++) {
+            degreesRects[c].isVisible = false;
+            if (gradients[c] == 0) {
+              rectsPopUp[c].backgroundGradient = gradientDefault;
+            } else if (gradients[c] == 1) {
+              rectsPopUp[c].backgroundGradient = gradientPurple;
+            } else if (gradients[c] == 2) {
+              rectsPopUp[c].backgroundGradient = gradientGreen;
+            }
+          }
+
+          var buttonNextStepRed2 = BABYLON.GUI.Button.CreateSimpleButton(
+            "butNextStep",
+            "⇨"
+          );
+          buttonNextStepRed2.width = "40px";
+          buttonNextStepRed2.height = "40px";
+          buttonNextStepRed2.fontSize = "6%";
+          buttonNextStepRed2.horizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+          buttonNextStepRed2.verticalAlignment =
+            BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+          buttonNextStepRed2.top = "-20px";
+          buttonNextStepRed2.left = "-20px";
+          buttonNextStepRed2.color = dark;
+          //buttonNextStepRed2.cornerRadius = 20;
+          buttonNextStepRed2.background = "#f7f0eb";
+          buttonNextStepRed2.thickness = 0;
+          //buttonNextStepRed2.isVisible = false;
+
+          advancedTexture.addControl(buttonNextStepRed2);
+
+          buttonNextStepRed2.isVisible = false;
+          let w = S[S.length - 1];
+
+          console.log(S);
+          //console.log(w);
+          let found_edge = false;
+
+          j = -1;
+          if (j == -1) {
+            buttonNextStepRed2.isVisible = true;
+          }
+          buttonNextStepGreen.isVisible = false;
+          if (S.length === 0) {
+            /*for (let c = 0; c < way.length; c++) {
+              wayText[c] = way[c] + 1;
+            }
+            textblockInfo.text = "\nЭйлеров путь - " + wayText;*/
+            buttonNextStepGreen.isVisible = false;
+            buttonNextStepRed2.isVisible = false;
+            resetGraph();
+          }
+          rectsPopUp[w].backgroundGradient = gradientYellow;
+          var wayText = [];
+          var SText = [];
+          for (let c = 0; c < way.length; c++) {
+            wayText[c] = way[c] + 1;
+          }
+          for (let c = 0; c < S.length; c++) {
+            SText[c] = S[c] + 1;
+          }
+          textblockInfo.text =
+            "Стэк - " +
+            SText +
+            "\nРассматриваемая вершина из стэка - " +
+            (w + 1) +
+            "\nЭйлеров путь - " +
+            wayText;
+
+          updateInfo(rectInfo, textblockInfo, textblockInfo.text);
+
+          buttonNextStepRed2.onPointerClickObservable.add(function () {
+            if (j > quantity - 1) {
+              buttonNextStepGreen.isVisible = true;
+              buttonNextStepRed2.isVisible = false;
+              way.push(w);
+              rectsPopUp[w].backgroundGradient = gradientGreen;
+              gradients[w] = 2;
+              if (way.length > 1) {
+                lines[way[way.length - 1]][way[way.length - 2]].color = green;
+                lines[way[way.length - 2]][way[way.length - 1]].color = green;
+                lines[way[way.length - 1]][way[way.length - 2]].lineWidth = 3;
+                lines[way[way.length - 2]][way[way.length - 1]].lineWidth = 3;
+              }
+              S.pop(); // не нашлось инцидентных вершине w рёбер, по которым ещё не прошли
+              console.log(way);
+            }
+            j++;
+            for (let c = 0; c < way.length; c++) {
+              wayText[c] = way[c] + 1;
+            }
+            for (let c = 0; c < S.length; c++) {
+              SText[c] = S[c] + 1;
+            }
+            textblockInfo.text =
+              "Стэк - " +
+              SText +
+              "\nРассматриваемая вершина из стэка - " +
+              (w + 1) +
+              "\nЭйлеров путь - " +
+              wayText;
+
+            updateInfo(rectInfo, textblockInfo, textblockInfo.text);
+            if (rectsPopUp[j].backgroundGradient != gradientYellow) {
+              rectsPopUp[j].backgroundGradient = gradientRed;
+            }
+
+            //console.log(w, j, matrixSmClone[w][j]);
+            if (matrixSmClone[w][j] == 1) {
+              S.push(j);
+              lines[w][j].isVisible = true;
+              lines[j][w].isVisible = true;
+              lines[w][j].color = purple;
+              lines[j][w].color = purple;
+              if (rectsPopUp[j].backgroundGradient != gradientYellow) {
+                rectsPopUp[j].backgroundGradient = gradientPurple;
+              }
+              //rectsPopUp[j].backgroundGradient = gradientPurple;
+              gradients[j] = 1;
+              matrixSmClone[w][j] = 0;
+              matrixSmClone[j][w] = 0;
+              found_edge = true;
+              for (let c = 0; c < way.length; c++) {
+                wayText[c] = way[c] + 1;
+              }
+              for (let c = 0; c < S.length; c++) {
+                SText[c] = S[c] + 1;
+              }
+              textblockInfo.text =
+                "Стэк - " +
+                SText +
+                "\nРассматриваемая вершина из стэка - " +
+                (w + 1) +
+                "\nЭйлеров путь - " +
+                wayText;
+
+              updateInfo(rectInfo, textblockInfo, textblockInfo.text);
+              buttonNextStepGreen.isVisible = true;
+              buttonNextStepRed2.isVisible = false;
+
+              /*if (!found_edge) {
+                S.pop(); // не нашлось инцидентных вершине w рёбер, по которым ещё не прошли
+                console.log(w + 1);
+              }*/
+            }
+          });
+        });
+      }
+
+      function updateInfo(rect, textblock, text) {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        advancedTexture.addControl(rect);
+
+        textblock.text = text;
+        rect.addControl(textblock);
+      }
+
+      var resetGraph = function () {
+        var gradientDefault = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientDefault.addColorStop(0, skinColor);
+        gradientDefault.addColorStop(1, skinColor);
+        for (let i = 0; i < quantity; i++) {
+          rectsPopUp[i].backgroundGradient = gradientDefault;
+          labelsPopUp[i].color = dark;
+          for (let j = 0; j < quantity; j++) {
+            lines[i][j].color = dark;
+            lines[i][j].lineWidth = 1;
+          }
+        }
+      };
+
+      var resetNodes = function () {
+        var gradientDefault = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientDefault.addColorStop(0, skinColor);
+        gradientDefault.addColorStop(1, skinColor);
+        for (let i = 0; i < quantity; i++) {
+          rectsPopUp[i].backgroundGradient = gradientDefault;
+        }
+      };
+
+      var xs = [];
+      var ys = [];
+      var getCoord = function () {
+        var q = quantity;
+        //var q = 10;
+        var r = q;
+        var j = 0;
+        for (i = 0; i < Math.PI * 2; i += (Math.PI * 2) / q) {
+          x = r * Math.sin(i);
+          y = r * Math.cos(i);
+          xs[j] = x * 20;
+          ys[j] = y * 20;
+          j++;
+        }
+      };
+
+      var graphNotOrNotWe = function (scene) {
+        //Построение неориентированного невзвешенного графа
+        getCoord();
+
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        let sphereNum = 0;
+        let sphereNode = new BABYLON.Mesh("spheres", scene);
+
+        for (let i = 0; i < quantity; i++) {
+          spheres[i] = 0;
+          spheresXs[i] = 0;
+          spheresYs[i] = 0;
+          spheresZs[i] = 0;
+          targets[i] = 0;
+          dragBehaviors[i] = 0;
+          rectsPopUp[i] = 0;
+          linesPopUp[i] = 0;
+          labelsPopUp[i] = 0;
+
+          lines[i] = [];
+        }
+
+        for (let i = 0; i < quantity; i++) {
+          for (let j = 0; j < quantity; j++) {
+            lines[i][j] = 0;
+          }
+        }
+
+        for (let i = 0; i < quantity; i++) {
+          let name = `sphera${sphereNum++}`;
+          let sphere = BABYLON.MeshBuilder.CreateSphere(
+            name,
+            { diameter: 32, segments: 32 },
+            scene
+          );
+          let variance1 = xs[i];
+          let variance2 = ys[i];
+          let variance3 = 0;
+
+          sphere.position = new BABYLON.Vector3(
+            variance1,
+            variance2,
+            variance3
+          );
+
+          spheresXs[i] = variance1;
+          spheresYs[i] = variance2;
+          spheresZs[i] = variance3;
+          sphere.outlineWidth = 0.1;
+          sphereNode.addChild(sphere);
+
+          spheres[i] = sphere;
+
+          var target = new BABYLON.GUI.Ellipse();
+          target.width = "20px";
+          target.height = "20px";
+          target.color = skinColor;
+
+          target.thickness = 4;
+          target.background = skinColor;
+          advancedTexture.addControl(target);
+          target.linkWithMesh(sphere);
+          target.top = "10px";
+          targets[i] = target;
+          //targets[i].isVisible = false
+
+          pointerDragBehavior = new BABYLON.PointerDragBehavior({});
+          pointerDragBehavior.useObjectOrientationForDragging = false;
+          pointerDragBehavior.onDragStartObservable.add((event) => {
+            console.log("dragStart");
+            console.log(event);
+          });
+          pointerDragBehavior.onDragObservable.add((event) => {
+            console.log("drag");
+            console.log(event);
+          });
+          pointerDragBehavior.onDragEndObservable.add((event) => {
+            console.log("dragEnd");
+            console.log(event);
+          });
+
+          dragBehaviors[i] = pointerDragBehavior;
+          spheres[i].addBehavior(dragBehaviors[i]);
+        }
+
+        for (let i = 0; i < quantity; i++) {
+          for (let j = 0; j < quantity; j++) {
+            if (matrixSm[i][j] == 1) {
+              var line = new BABYLON.GUI.Line();
+              line.lineWidth = 1;
+              line.color = dark;
+              lines[i][j] = line;
+              advancedTexture.addControl(lines[i][j]);
+              lines[i][j].linkWithMesh(spheres[i]);
+              lines[i][j].connectedControl = targets[j];
+            }
+          }
+        }
+
+        for (let i = 0; i < quantity; i++) {
+          spheres[i].actionManager = new BABYLON.ActionManager(scene);
+
+          const hl = new BABYLON.HighlightLayer("hl1", scene);
+
+          var advancedTexture2 =
+            BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+          advancedTexture2.idealWidth = 900;
+
+          var rectPopUp = new BABYLON.GUI.Rectangle();
+          rectPopUp.width = "40px";
+          rectPopUp.height = "40px";
+          rectPopUp.cornerRadius = 20;
+          rectPopUp.color = dark;
+          rectPopUp.thickness = 4;
+          rectPopUp.background = "Black";
+          //rectPopUp.linkOffsetY = -100;
+          rectsPopUp[i] = rectPopUp;
+
+          var gradientDefault = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+          gradientDefault.addColorStop(0, skinColor);
+          gradientDefault.addColorStop(1, skinColor);
+          rectPopUp.backgroundGradient = gradientDefault;
+
+          var label = new BABYLON.GUI.TextBlock();
+          label.text = i + 1;
+          label.color = dark;
+          labelsPopUp[i] = label;
+
+          var target = new BABYLON.GUI.Ellipse();
+          target.width = "4px";
+          target.height = "4px";
+          target.color = "Black";
+          target.thickness = 4;
+          target.background = "White";
+
+          advancedTexture.addControl(rectsPopUp[i]);
+          rectsPopUp[i].linkWithMesh(spheres[i]);
+
+          rectsPopUp[i].addControl(labelsPopUp[i]);
+
+          advancedTexture.addControl(target);
+          target.linkWithMesh(spheres[i]);
+
+          advancedTexture2.isVisible = true;
+          rectsPopUp[i].isVisible = true;
+          target.isVisible = true;
+          linesPopUp[i].isVisible = true;
+
+          spheres[i].actionManager.registerAction(
+            new BABYLON.ExecuteCodeAction(
+              BABYLON.ActionManager.OnPointerOverTrigger,
+              function (ev) {
+                scene.hoverCursor = "pointer";
+                hl.addMesh(spheres[i], BABYLON.Color3.Green());
+                advancedTexture.isVisible = true;
+                rectsPopUp[i].isVisible = true;
+                target.isVisible = true;
+                linesPopUp[i].isVisible = true;
+              }
+            )
+          );
+
+          spheres[i].actionManager.registerAction(
+            new BABYLON.ExecuteCodeAction(
+              BABYLON.ActionManager.OnPointerOutTrigger,
+              function (ev) {
+                hl.removeMesh(spheres[i], BABYLON.Color3.White());
+                if (isPopUpsShown == false) {
+                  advancedTexture2.isVisible = false;
+                  rectsPopUp[i].isVisible = false;
+                  target.isVisible = false;
+                  linesPopUp[i].isVisible = false;
+                }
+              }
+            )
+          );
+        }
+      };
+
+      var textWindowFullScreen = function (howManySlides) {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var rectInput = new BABYLON.GUI.Rectangle();
+        rectInput.width = "100%";
+        rectInput.height = "100%";
+        //rectInput.cornerRadius = 10;
+        //rectInput.color = skinColor;
+        rectInput.thickness = 0;
+        //rectInput.background = skinColor;
+
+        var placeholder1 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_left_bottom.jpg"
+        );
+        placeholder1.width = "1352px";
+        placeholder1.height = "806px";
+        placeholder1.top = "280px";
+        placeholder1.left = "-700px";
+        placeholder1.outlineWidth = "0px";
+
+        var placeholder2 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_left_top.jpg"
+        );
+        placeholder2.width = "1227px";
+        placeholder2.height = "629px";
+        placeholder2.top = "-500px";
+        placeholder2.left = "-650px";
+        placeholder2.outlineWidth = "0px";
+
+        var placeholder3 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_right_top.jpg"
+        );
+        placeholder3.width = "1338px";
+        placeholder3.height = "960px";
+        placeholder3.top = "-400px";
+        placeholder3.left = "650px";
+        placeholder3.outlineWidth = "0px";
+
+        placeholder1.alpha = 0.1;
+        placeholder2.alpha = 0.15;
+        placeholder3.alpha = 0.1;
+        rectInput.addControl(placeholder1);
+        rectInput.addControl(placeholder2);
+        rectInput.addControl(placeholder3);
+
+        var gradientDefault = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientDefault.addColorStop(0, skinColor);
+        gradientDefault.addColorStop(1, skinColor);
+        rectInput.backgroundGradient = gradientDefault;
+
+        var title = new BABYLON.GUI.TextBlock();
+        title.width = "90%";
+        title.fontSize = "5%";
+        title.fontStyle = "Bold";
+        title.color = dark;
+        title.top = "-45%";
+        title.textWrapping = true;
+        title.text = titels[index];
+        rectInput.addControl(title);
+
+        var textblock = new BABYLON.GUI.TextBlock();
+        //textblock.width = "99%"
+        //textblock.fontSize = "5%";
+        textblock.color = dark;
+        //textblock.top = "-45%";
+        textblock.textWrapping = true;
+        textblock.text = texts[index];
+        textblock.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        textblock.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        textblock.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        textblock.textVerticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        textblock.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+        textblock.resizeToFit = true;
+        textblock.paddingTop = "10px";
+        textblock.paddingLeft = "30px";
+        textblock.paddingRight = "20px";
+        textblock.paddingBottom = "15px";
+        textblock.fontSize = "25";
+
+        var buttonNext = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonNext",
+          "⇨"
+        );
+        buttonNext.width = "40px";
+        buttonNext.height = "40px";
+        buttonNext.fontSize = "6%";
+        buttonNext.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonNext.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonNext.top = "-20px";
+        buttonNext.left = "-20px";
+        buttonNext.color = dark;
+        //buttonNext.cornerRadius = 20;
+        buttonNext.background = skinColor;
+        buttonNext.thickness = 0;
+
+        if (index == howManySlides - 1) {
+          buttonNext.onPointerClickObservable.add(function () {
+            rectInput.isVisible = false;
+            index++;
+            console.log(index);
+            textWindowFramed();
+          });
+        } else {
+          buttonNext.onPointerClickObservable.add(function () {
+            rectInput.isVisible = false;
+            index++;
+            console.log(index);
+          });
+        }
+
+        var buttonBack = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonBack",
+          "⇦"
+        );
+        buttonBack.width = "40px";
+        buttonBack.height = "40px";
+        buttonBack.fontSize = "6%";
+        buttonBack.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonBack.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonBack.top = "-20px";
+        buttonBack.left = "20px";
+        buttonBack.color = dark;
+        //buttonBack.cornerRadius = 30;
+        buttonBack.background = skinColor;
+        buttonBack.thickness = 0;
+
+        if (index > 0) {
+          buttonBack.onPointerClickObservable.add(function () {
+            rectInput.isVisible = false;
+            index--;
+            console.log(index);
+            textWindowFullScreen();
+          });
+        } else {
+          buttonBack.isVisible = false;
+        }
+
+        var buttonHome = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonHome",
+          "⌂"
+        );
+        buttonHome.width = "40px";
+        buttonHome.height = "40px";
+        buttonHome.fontSize = "6%";
+        buttonHome.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonHome.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonHome.top = "-20px";
+        buttonHome.left = "20px";
+        buttonHome.color = dark;
+        //buttonHome.cornerRadius = 30; 
+        buttonHome.background = skinColor;
+        buttonHome.thickness = 0;
+
+        buttonHome.onPointerClickObservable.add(function () {
+          window.open("homePage.html");
+          window.close("dfs.html");
+        });
+
+        var sv = new BABYLON.GUI.ScrollViewer();
+        sv.thickness = 1;
+        sv.color = dark;
+        sv.width = "90%";
+        sv.height = "75%";
+        sv.top = "10px";
+        sv.background = skinColor;
+        sv.clipChildren = false;
+        rectInput.addControl(sv);
+        rectInput.addControl(sv);
+
+        var stackV = new BABYLON.GUI.StackPanel();
+        stackV.isVertical = true;
+
+        stackV.addControl(textblock);
+        sv.addControl(stackV);
+
+        advancedTexture.addControl(rectInput);
+
+        setImage(4, stackV, "667px", "611px");
+
+        rectInput.addControl(buttonNext);
+        rectInput.addControl(buttonBack);
+        rectInput.addControl(buttonHome);
+      };
+
+      var textWindowFramed = function () {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var rectInput = new BABYLON.GUI.Rectangle();
+        rectInput.width = "40%";
+        rectInput.height = "100%";
+        //rectInput.cornerRadius = 10;
+        rectInput.color = dark;
+        rectInput.thickness = 1;
+        rectInput.background = skinColor;
+        rectInput.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        rectInput;
+
+        hideShowRectButtons(rectInput, advancedTexture, "right", "top");
+
+        advancedTexture.addControl(rectInput);
+
+        var gradientDefault = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientDefault.addColorStop(0, skinColor);
+        gradientDefault.addColorStop(1, skinColor);
+        rectInput.backgroundGradient = gradientDefault;
+
+        var title = new BABYLON.GUI.TextBlock();
+        title.width = "75%";
+        title.fontSize = "5%";
+        title.color = dark;
+        title.top = "-45%";
+        title.textWrapping = true;
+        title.text = titels[index];
+        rectInput.addControl(title);
+
+        var textblock = new BABYLON.GUI.TextBlock();
+        //textblock.width = "99%"
+        //textblock.fontSize = "5%";
+        textblock.color = dark;
+        //textblock.top = "-45%";
+        textblock.textWrapping = true;
+        textblock.text = texts[index];
+        textblock.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        textblock.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        textblock.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        textblock.textVerticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        textblock.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+        textblock.resizeToFit = true;
+        textblock.paddingTop = "10px";
+        textblock.paddingLeft = "30px";
+        textblock.paddingRight = "20px";
+        textblock.paddingBottom = "15px";
+        textblock.fontSize = "25";
+
+        var buttonNext = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonNext",
+          "⇨"
+        );
+        buttonNext.width = "40px";
+        buttonNext.height = "40px";
+        buttonNext.fontSize = "6%";
+        buttonNext.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonNext.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonNext.top = "-20px";
+        buttonNext.left = "-20px";
+        buttonNext.color = dark;
+        //buttonNext.cornerRadius = 20;
+        buttonNext.background = skinColor;
+        buttonNext.thickness = 0;
+
+        var buttonHideText = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonHideText",
+          "⇨"
+        );
+        buttonHideText.width = "40px";
+        buttonHideText.height = "40px";
+        buttonHideText.fontSize = "6%";
+        buttonHideText.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonHideText.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonHideText.top = "-20px";
+        buttonHideText.left = "-20px";
+        buttonHideText.color = dark;
+        //buttonHideText.cornerRadius = 20;
+        buttonHideText.background = skinColor;
+        buttonHideText.isVisible = false;
+        buttonHideText.thickness = 0;
+
+        var buttonBack = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonBack",
+          "⇦"
+        );
+        buttonBack.width = "40px";
+        buttonBack.height = "40px";
+        buttonBack.fontSize = "6%";
+        buttonBack.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonBack.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonBack.top = "-20px";
+        buttonBack.left = "20px";
+        buttonBack.color = dark;
+        //buttonBack.cornerRadius = 30;
+        buttonBack.background = skinColor;
+        buttonBack.thickness = 0;
+
+        var buttonHome = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonHome",
+          "⌂"
+        );
+        buttonHome.width = "40px";
+        buttonHome.height = "40px";
+        buttonHome.fontSize = "6%";
+        buttonHome.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonHome.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonHome.top = "-20px";
+        //buttonHome.left = "20px";
+        buttonHome.color = dark;
+        //buttonHome.cornerRadius = 30;
+        buttonHome.background = skinColor;
+        buttonHome.thickness = 0;
+
+        buttonHome.onPointerClickObservable.add(function () {
+          window.open("homePage.html");
+          window.close("dfs.html");
+        });
+
+        var sv = new BABYLON.GUI.ScrollViewer();
+        sv.thickness = 1;
+        sv.color = dark;
+        sv.width = "90%";
+        sv.height = "75%";
+        sv.top = "10px";
+        sv.background = skinColor;
+        sv.clipChildren = false;
+        rectInput.addControl(sv);
+        rectInput.addControl(sv);
+
+        var stackV = new BABYLON.GUI.StackPanel();
+        stackV.isVertical = true;
+
+        stackV.addControl(textblock);
+        sv.addControl(stackV);
+
+        rectInput.addControl(buttonNext);
+        //rectInput.addControl(buttonBack);
+        rectInput.addControl(buttonHome);
+
+        buttonNext.onPointerClickObservable.add(function () {
+          rectInput.isVisible = false;
+          index++;
+          console.log(index);
+          textWindowFramed();
+        });
+        buttonBack.onPointerClickObservable.add(function () {
+          rectInput.isVisible = false;
+          index--;
+          console.log(index);
+          textWindowFramed();
+        });
+
+        if (index == 3) {
+          setImage(0, stackV, "434px", "808px");
+          //setImage(1, stackV, "230px", "229px");
+        } /* else if (index == 5) {
+          setImage(2, stackV, "337px", "217px");
+        } else if (index == 6) {
+          setImage(3, stackV, "359px", "564px");
+        }*/
+
+        if (index == texts.length - 1) {
+          buttonHideText.onPointerClickObservable.add(function () {
+            rectInput.isVisible = false;
+            buttonNext.isVisible = false;
+          });
+          buttonHideText.isVisible = true;
+          rectInput.addControl(buttonHideText);
+        }
+      };
+
+      var hideShowRectButtons = function (
+        rect,
+        advancedTexture,
+        corner_RL,
+        corner_TB
+      ) {
+        var buttonFullScreen = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonFullScreen",
+          "❐"
+        );
+        buttonFullScreen.width = "30px";
+        buttonFullScreen.height = "30px";
+        buttonFullScreen.fontSize = "20";
+        buttonFullScreen.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonFullScreen.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        buttonFullScreen.top = "5px";
+        buttonFullScreen.left = "-5px";
+        buttonFullScreen.color = dark;
+        buttonFullScreen.thickness = 2;
+        //buttonFullScreen.cornerRadius = 20;
+        buttonFullScreen.background = skinColor;
+
+        var buttonWindowed = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonWindowed",
+          "❐"
+        );
+        buttonWindowed.width = "30px";
+        buttonWindowed.height = "30px";
+        buttonWindowed.fontSize = "20";
+        buttonWindowed.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonWindowed.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        buttonWindowed.top = "5px";
+        buttonWindowed.left = "-5px";
+        buttonWindowed.color = dark;
+        buttonWindowed.thickness = 2;
+        //buttonWindowed.cornerRadius = 20;
+        buttonWindowed.isVisible = false;
+        buttonWindowed.background = skinColor;
+
+        var buttonHideWindow = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonHideWindow",
+          "—"
+        );
+        buttonHideWindow.width = "30px";
+        buttonHideWindow.height = "30px";
+        buttonHideWindow.fontSize = "20";
+        buttonHideWindow.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonHideWindow.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        buttonHideWindow.top = "5px";
+        buttonHideWindow.left = "-40px";
+        buttonHideWindow.color = dark;
+        buttonHideWindow.thickness = 2;
+        //buttonHideWindow.cornerRadius = 20;
+        //buttonHideWindow.isVisible = false;
+        buttonHideWindow.background = skinColor;
+
+        var buttonShowWindow = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonShowWindow",
+          "❐"
+        );
+        buttonShowWindow.width = "30px";
+        buttonShowWindow.height = "30px";
+        buttonShowWindow.fontSize = "20";
+        buttonShowWindow.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonShowWindow.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        buttonShowWindow.top = "5px";
+        buttonShowWindow.left = "-5px";
+        buttonShowWindow.color = dark;
+        buttonShowWindow.thickness = 2;
+        //buttonShowWindow.cornerRadius = 20;
+        //buttonShowWindow.isVisible = false;
+        buttonShowWindow.background = skinColor;
+
+        var rectWidth = rect.width;
+        var rectHeight = rect.height;
+
+        var rectHiden = new BABYLON.GUI.Rectangle();
+        rectHiden.isVisible = false;
+        rectHiden.width = "42px";
+        rectHiden.height = "42px";
+        rectHiden.color = dark;
+        rectHiden.thickness = 0;
+        rectHiden.background = "#f7f0eb";
+        rectHiden.alpha = 0.15;
+        if (corner_TB == "top") {
+          rectHiden.verticalAlignment =
+            BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        } else if (corner_TB == "bottom") {
+          rectHiden.verticalAlignment =
+            BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        }
+
+        if (corner_RL == "right") {
+          rectHiden.horizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        } else if (corner_RL == "left") {
+          rectHiden.horizontalAlignment =
+            BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        }
+
+        buttonWindowed.onPointerClickObservable.add(function () {
+          rect.width = rectWidth;
+          rect.height = rectHeight;
+          buttonWindowed.isVisible = false;
+          buttonFullScreen.isVisible = true;
+        });
+
+        buttonFullScreen.onPointerClickObservable.add(function () {
+          rect.width = "100%";
+          rect.height = "100%";
+          buttonFullScreen.isVisible = false;
+          buttonWindowed.isVisible = true;
+        });
+
+        buttonHideWindow.onPointerClickObservable.add(function () {
+          rect.isVisible = false;
+          rectHiden.isVisible = true;
+
+          //buttonFullScreen.isVisible = false;
+          //buttonWindowed.isVisible = true;
+        });
+
+        buttonShowWindow.onPointerClickObservable.add(function () {
+          rect.isVisible = true;
+          rectHiden.isVisible = false;
+
+          //buttonFullScreen.isVisible = false;
+          //buttonWindowed.isVisible = true;
+        });
+
+        rectHiden.addControl(buttonShowWindow);
+        advancedTexture.addControl(rectHiden);
+        rect.addControl(buttonFullScreen);
+        rect.addControl(buttonWindowed);
+        rect.addControl(buttonHideWindow);
+      };
+
+      var isInfoOpen = false;
+      var infoButton = function () {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var buttonInfo = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonInfo",
+          "i"
+        );
+        buttonInfo.width = "50px";
+        buttonInfo.height = "50px";
+        buttonInfo.fontSize = "5%";
+        buttonInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        buttonInfo.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonInfo.top = "20px";
+        buttonInfo.left = "20px";
+        buttonInfo.color = "#f7f0eb";
+        buttonInfo.cornerRadius = 25;
+        buttonInfo.fontStyle = "Bold";
+        buttonInfo.background = dark;
+        advancedTexture.addControl(buttonInfo);
+
+        var rectInfo = new BABYLON.GUI.Rectangle();
+        rectInfo.width = "600px";
+        rectInfo.height = "95%";
+        rectInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        rectInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        rectInfo.thickness = 0;
+        rectInfo.background = dark;
+        rectInfo.isVisible = isInfoOpen;
+
+        advancedTexture.addControl(rectInfo);
+
+        var controls = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/controls.png"
+        );
+        controls.width = "560px";
+        controls.height = "1475px";
+        //controls.top = "-400px";
+        //controls.left = "650px";
+        controls.outlineWidth = "0px";
+
+        var sv = new BABYLON.GUI.ScrollViewer();
+        sv.thickness = 1;
+        sv.color = dark;
+        sv.width = "98%";
+        sv.height = "98%";
+        //sv.top = "10px";
+        sv.background = dark;
+        sv.clipChildren = false;
+        rectInfo.addControl(sv);
+        rectInfo.addControl(sv);
+
+        var stackV = new BABYLON.GUI.StackPanel();
+        stackV.isVertical = true;
+
+        stackV.addControl(controls);
+        sv.addControl(stackV);
+
+        buttonInfo.onPointerClickObservable.add(function () {
+          if (isInfoOpen == 0) {
+            buttonInfo.isVisible = false;
+            isInfoOpen = true;
+            infoButton();
+            rectInfo.isVisible = false;
+
+            console.log(isInfoOpen);
+          } else {
+            buttonInfo.isVisible = false;
+            isInfoOpen = false;
+            infoButton();
+            rectInfo.isVisible = false;
+
+            console.log(isInfoOpen);
+          }
+        });
+      };
+
+      var createScene = function () {
+        //Функция выполнения логики программы
+        const scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color3(0.97, 0.94, 0.92);
+        preScene(scene);
+        graphNotOrNotWe(scene);
+
+        checkForEulerPath();
+        findEulerPathVisualisation();
+        textWindowFullScreen(1);
+
+        infoButton();
+        return scene;
+      };
+      window.initFunction = async function () {
+        var asyncEngineCreation = async function () {
+          try {
+            return createDefaultEngine();
+          } catch (e) {
+            console.log(
+              "the available createEngine function failed. Creating the default engine instead"
+            );
+            return createDefaultEngine();
+          }
+        };
+
+        window.engine = await asyncEngineCreation();
+        if (!engine) throw "engine should not be null.";
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();
+      };
+      initFunction().then(() => {
+        sceneToRender = scene;
+      });
+
+      // Resize
+      window.addEventListener("resize", function () {
+        engine.resize();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>«Комбинаторика для программистов»</title>
+
+    <!-- Babylon.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+    <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+    <script src="https://cdn.babylonjs.com/recast.js"></script>
+    <script src="https://cdn.babylonjs.com/ammo.js"></script>
+    <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+    <script src="https://cdn.babylonjs.com/cannon.js"></script>
+    <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+    <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+    <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+    <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+    <style>
+      html,
+      body {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      #canvasZone {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+      var canvas = document.getElementById("renderCanvas");
+
+      var startRenderLoop = function (engine, canvas) {
+        engine.runRenderLoop(function () {
+          if (sceneToRender && sceneToRender.activeCamera) {
+            sceneToRender.render();
+          }
+        });
+      };
+
+      var engine = null;
+      var scene = null;
+      var sceneToRender = null;
+      var createDefaultEngine = function () {
+        return new BABYLON.Engine(canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true,
+          disableWebGL2Support: false,
+        });
+      };
+
+      var skinColor = "#e5ded6"; //"#EAEAE3""#272727""black"
+      var dark = "#222222"; //"#fde401"
+
+      var images = [
+        "https://raw.githubusercontent.com/pave228/Babylon/main/start.png",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/map.png",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/construct.png",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/BigO.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/dynamicprog.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/struct.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/decomp.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/electric.png",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D0%B0-%D0%BA%D0%BE%D0%BC%D0%BF%D0%B0%D0%BD%D0%B8%D0%B8.png",
+      ];
+
+      var setImage = function (imageIndex, rect, width, height) {
+        var image = new BABYLON.GUI.Image("img", images[imageIndex]);
+        image.width = width;
+        image.height = height;
+        image.outlineWidth = "4px";
+        image.paddingBottom = "10px";
+        rect.addControl(image);
+      };
+
+      var preScene = function (scene) {
+        //Функция создания необходимых элементов сцены
+        var camera = new BABYLON.ArcRotateCamera(
+          "camera",
+          Math.PI / 3,
+          Math.PI / 3,
+          10,
+          BABYLON.Vector3.Zero(),
+          scene
+        );
+
+        camera.setTarget(BABYLON.Vector3.Zero());
+
+        camera.attachControl(canvas, true);
+
+        const light = new BABYLON.HemisphericLight(
+          "light",
+          new BABYLON.Vector3(0, 1, 0),
+          scene
+        );
+        light.intensity = 0.7;
+      };
+
+      var mainPage = function () {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var rectBG = new BABYLON.GUI.Rectangle();
+        rectBG.width = "100%";
+        rectBG.height = "100%";
+        rectBG.thickness = 0;
+
+        var placeholder1 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_left_bottom.jpg"
+        );
+        placeholder1.width = "1352px";
+        placeholder1.height = "806px";
+        placeholder1.top = "280px";
+        placeholder1.left = "-700px";
+        placeholder1.outlineWidth = "0px";
+
+        var placeholder2 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_left_top.jpg"
+        );
+        placeholder2.width = "1227px";
+        placeholder2.height = "629px";
+        placeholder2.top = "-500px";
+        placeholder2.left = "-650px";
+        placeholder2.outlineWidth = "0px";
+
+        var placeholder3 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_right_top.jpg"
+        );
+        placeholder3.width = "1338px";
+        placeholder3.height = "960px";
+        placeholder3.top = "-400px";
+        placeholder3.left = "650px";
+        placeholder3.outlineWidth = "0px";
+
+        placeholder1.alpha = 0.1;
+        placeholder2.alpha = 0.15;
+        placeholder3.alpha = 0.1;
+        rectBG.addControl(placeholder1);
+        rectBG.addControl(placeholder2);
+        rectBG.addControl(placeholder3);
+
+        var gradientDefault = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientDefault.addColorStop(0, skinColor);
+        gradientDefault.addColorStop(1, skinColor);
+        rectBG.backgroundGradient = gradientDefault;
+
+        var title = new BABYLON.GUI.TextBlock();
+        title.width = "75%";
+        title.fontSize = "5%";
+        title.color = dark;
+        title.fontStyle = "Bold";
+        title.top = "-40%";
+        title.textWrapping = true;
+        title.text = "Интерактивный курс: «Комбинаторика для программистов»";
+        rectBG.addControl(title);
+
+        advancedTexture.addControl(rectBG);
+
+        var buttonGitHub = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonGitHub",
+          ""
+        );
+        buttonGitHub.width = "50px";
+        buttonGitHub.height = "50px";
+        buttonGitHub.fontSize = "5%";
+        buttonGitHub.alpha = 0.5
+        buttonGitHub.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonGitHub.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonGitHub.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonGitHub.top = "-10px";
+        //buttonGitHub.left = "-10px";
+        buttonGitHub.color = skinColor;
+        buttonGitHub.cornerRadius = 0;
+        //buttonGitHub.background = "#f7f0eb";
+
+        var imageGitHub = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/github.png"
+        );
+        imageGitHub.width = "50px";
+        imageGitHub.height = "50px";
+        //imageGitHub.top = "-400px";
+        //imageGitHub.left = "650px";
+        imageGitHub.outlineWidth = "0px";
+
+        buttonGitHub.addControl(imageGitHub);
+
+        rectBG.addControl(buttonGitHub)
+
+        var buttonStartCourse = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonStartCourse",
+          ""
+        );
+        buttonStartCourse.width = "330px";
+        buttonStartCourse.height = "80px";
+        buttonStartCourse.fontSize = "5%";
+        buttonStartCourse.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonStartCourse.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        buttonStartCourse.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonStartCourse.top = "-110px";
+        //buttonStartCourse.left = "-10px";
+        buttonStartCourse.color = dark;
+        buttonStartCourse.cornerRadius = 3;
+        buttonStartCourse.background = "#f7f0eb";
+        rectBG.addControl(buttonStartCourse);
+
+        var title = new BABYLON.GUI.TextBlock();
+        title.color = dark;
+        title.textWrapping = true;
+        title.text = "Начать курс";
+        title.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        title.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        title.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        title.textVerticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        title.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+        title.resizeToFit = true;
+        title.paddingTop = "10px";
+        title.paddingLeft = "15px";
+        title.paddingRight = "20px";
+        title.paddingBottom = "15px";
+        title.fontSize = "40%";
+        title.fontStyle = "Bold";
+        buttonStartCourse.addControl(title);
+
+        var imageHomePage = new BABYLON.GUI.Image("img", images[0]);
+        imageHomePage.width = "70px";
+        imageHomePage.height = "60px";
+        imageHomePage.left = "-15px";
+        //imageHomePage.outlineWidth = "4px";
+        //imageHomePage.paddingBottom = "10px";
+        imageHomePage.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonStartCourse.addControl(imageHomePage);
+
+        var buttonGraphConstructor = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonGraphConstructor",
+          ""
+        );
+        buttonGraphConstructor.width = "330px";
+        buttonGraphConstructor.height = "80px";
+        buttonGraphConstructor.fontSize = "5%";
+        buttonGraphConstructor.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonGraphConstructor.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        //buttonGraphConstructor.top = "-110px";
+        //buttonGraphConstructor.left = "-10px";
+        buttonGraphConstructor.color = dark;
+        buttonGraphConstructor.cornerRadius = 3;
+        buttonGraphConstructor.background = "#f7f0eb";
+        rectBG.addControl(buttonGraphConstructor);
+
+        var title = new BABYLON.GUI.TextBlock();
+        title.color = dark;
+        title.textWrapping = true;
+        title.text = "Конструктор";
+        title.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        title.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        title.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        title.textVerticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        title.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+        title.resizeToFit = true;
+        title.paddingTop = "10px";
+        title.paddingLeft = "15px";
+        title.paddingRight = "20px";
+        title.paddingBottom = "15px";
+        title.fontSize = "40%";
+        title.fontStyle = "Bold";
+        buttonGraphConstructor.addControl(title);
+
+        var imageHomePage = new BABYLON.GUI.Image("img", images[2]);
+        imageHomePage.width = "60px";
+        imageHomePage.height = "60px";
+        imageHomePage.left = "-20px";
+        //imageHomePage.outlineWidth = "4px";
+        //imageHomePage.paddingBottom = "10px";
+        imageHomePage.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonGraphConstructor.addControl(imageHomePage);
+
+        var buttonCourseMap = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonCourseMap",
+          ""
+        );
+        buttonCourseMap.width = "330px";
+        buttonCourseMap.height = "80px";
+        buttonCourseMap.fontSize = "5%";
+        buttonCourseMap.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonCourseMap.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        buttonCourseMap.top = "110px";
+        //buttonCourseMap.left = "-10px";
+        buttonCourseMap.color = dark;
+        buttonCourseMap.cornerRadius = 3;
+        buttonCourseMap.background = "#f7f0eb";
+        rectBG.addControl(buttonCourseMap);
+
+        var title = new BABYLON.GUI.TextBlock();
+        title.color = dark;
+        title.textWrapping = true;
+        title.text = "Содержание";
+        title.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        title.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        title.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        title.textVerticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        title.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+        title.resizeToFit = true;
+        title.paddingTop = "10px";
+        title.paddingLeft = "15px";
+        title.paddingRight = "20px";
+        title.paddingBottom = "15px";
+        title.fontSize = "40%";
+        title.fontStyle = "Bold";
+        buttonCourseMap.addControl(title);
+
+        var imageHomePage = new BABYLON.GUI.Image("img", images[1]);
+        imageHomePage.width = "70px";
+        imageHomePage.height = "60px";
+        imageHomePage.left = "-15px";
+        //imageHomePage.outlineWidth = "4px";
+        //imageHomePage.paddingBottom = "10px";
+        imageHomePage.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonCourseMap.addControl(imageHomePage);
+
+        buttonStartCourse.onPointerClickObservable.add(function () {
+          window.open("index.html");
+          //window.close("homePage.html");
+        });
+
+        buttonGraphConstructor.onPointerClickObservable.add(function () {
+          window.open("graphConstructor.html");
+          //window.close("homePage.html");
+        });
+
+        buttonCourseMap.onPointerClickObservable.add(function () {
+          window.open("map.html");
+          //window.close("homePage.html");
+        });
+
+        buttonGitHub.onPointerClickObservable.add(function () {
+          window.open("https://github.com/pave228/Babylon/tree/main/OpenCode");
+          //window.close("homePage.html");
+        });
+      };
+
+      var isInfoOpen = false;
+      var infoButton = function () {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var buttonInfo = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonInfo",
+          "i"
+        );
+        buttonInfo.width = "50px";
+        buttonInfo.height = "50px";
+        buttonInfo.fontSize = "5%";
+        buttonInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        buttonInfo.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonInfo.top = "20px";
+        buttonInfo.left = "20px";
+        buttonInfo.color = "#f7f0eb";
+        buttonInfo.cornerRadius = 25;
+        buttonInfo.fontStyle = "Bold";
+        buttonInfo.background = dark;
+        advancedTexture.addControl(buttonInfo);
+
+        var rectInfo = new BABYLON.GUI.Rectangle();
+        rectInfo.width = "600px";
+        rectInfo.height = "95%";
+        rectInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        rectInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        rectInfo.thickness = 0;
+        rectInfo.background = dark;
+        rectInfo.isVisible = false;
+
+        advancedTexture.addControl(rectInfo);
+
+        var controls = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/controls.png"
+        );
+        controls.width = "560px";
+        controls.height = "1475px";
+        //controls.top = "-400px";
+        //controls.left = "650px";
+        controls.outlineWidth = "0px";
+
+        var sv = new BABYLON.GUI.ScrollViewer();
+        sv.thickness = 3;
+        sv.color = dark;
+        sv.width = "98%";
+        sv.height = "98%";
+        //sv.top = "10px";
+        sv.background = dark;
+        sv.clipChildren = false;
+        rectInfo.addControl(sv);
+        rectInfo.addControl(sv);
+
+        var stackV = new BABYLON.GUI.StackPanel();
+        stackV.isVertical = true;
+
+        stackV.addControl(controls);
+        sv.addControl(stackV);
+
+        buttonInfo.onPointerClickObservable.add(function () {
+          if (isInfoOpen == 0) {
+            rectInfo.isVisible = true;
+            isInfoOpen = true;
+          } else {
+            rectInfo.isVisible = false;
+            isInfoOpen = false;
+          }
+        });
+      };
+
+      var createScene = function () {
+        //Функция выполнения логики программы
+        const scene = new BABYLON.Scene(engine);
+        preScene(scene);
+
+        mainPage();
+
+        infoButton();
+        return scene;
+      };
+
+      window.initFunction = async function () {
+        var asyncEngineCreation = async function () {
+          try {
+            return createDefaultEngine();
+          } catch (e) {
+            console.log(
+              "the available createEngine function failed. Creating the default engine instead"
+            );
+            return createDefaultEngine();
+          }
+        };
+
+        window.engine = await asyncEngineCreation();
+        if (!engine) throw "engine should not be null.";
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();
+      };
+      initFunction().then(() => {
+        sceneToRender = scene;
+      });
+
+      // Resize
+      window.addEventListener("resize", function () {
+        engine.resize();
+      });
+    </script>
+  </body>
+</html>

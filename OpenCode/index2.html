@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+    <title>Алгоритмы на графах</title>
+
+    <!-- Babylon.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+    <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+    <script src="https://cdn.babylonjs.com/recast.js"></script>
+    <script src="https://cdn.babylonjs.com/ammo.js"></script>
+    <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+    <script src="https://cdn.babylonjs.com/cannon.js"></script>
+    <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+    <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+    <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+    <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+    <style>
+      html,
+      body {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      #canvasZone {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+      var canvas = document.getElementById("renderCanvas");
+
+      var startRenderLoop = function (engine, canvas) {
+        engine.runRenderLoop(function () {
+          if (sceneToRender && sceneToRender.activeCamera) {
+            sceneToRender.render();
+          }
+        });
+      };
+
+      var engine = null;
+      var scene = null;
+      var sceneToRender = null;
+      var createDefaultEngine = function () {
+        return new BABYLON.Engine(canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true,
+          disableWebGL2Support: false,
+        });
+      };
+      var titels = [
+        "Алгоритмы на графах",
+        "Эффективность алгоритма",
+        "Сложность программы и ее оценивание",
+        "Жадные алгоритмы",
+        "Динамическое программирование",
+        "Оптимизация программ\nСтруктуризация",
+        "Оптимизация программ\nДекомпозиция",
+        "Заключение",
+      ];
+      var texts = [
+        "   В рамках второй лекции мы познакомимся с такими понятиями как: \n" +
+          "   1.	Эффективнсть алгоритма; \n" +
+          "   2.	Сложность программы и ее оценивание; \n" +
+          "   3.	Жадные алгоритмы; \n" +
+          "   4.	Динамическое программирование; \n" +
+          "   5.	Оптимизация программ; \n" +
+          "   6.	Структуризация и декомпозиция кода. \n",
+        "   Эффективность алгоритма — это свойство алгоритма, которое связано с вычислительными ресурсами, используемыми алгоритмом. Алгоритм должен быть проанализирован с целью определения необходимых алгоритму ресурсов. Эффективность алгоритма можно рассматривать как аналог производственной производительности повторяющихся или непрерывных процессов.\n    Для достижения максимальной эффективности мы желаем уменьшить использование ресурсов. Однако различные ресурсы (такие как время и память) нельзя сравнить напрямую, так что какой из двух алгоритмов считать более эффективным часто зависит от того, какой фактор более важен, например, требование высокой скорости, минимального использования памяти или другой меры эффективности.\n    ",
+        "   В теоретическом анализе алгоритмов обычной практикой является оценка сложности алгоритма в его асимптотическом поведении, то есть для отражения сложности алгоритма как функции от размера входа n используется нотация «O» большое. Эта оценка, в основном, достаточно точна при большом n, но может привести к неправильным выводам при малых значениях n (так, сортировка пузырьком, считающаяся медленной, может оказаться быстрее «быстрой сортировки», если нужно отсортировать лишь несколько элементов).\n   В данном курсе мы также будем рассматривать оценку сложности тех или иных алгоритмов, связанных с графами.\n    Некоторые примеры нотации «O» большое:",
+        "   Рассмотрим понятие так называемых «жадных алгоритмов». Это алгоритмы, заключающиеся в принятии локально оптимальных решений на каждом этапе, допуская, что конечное решение также окажется оптимальным. К примеру, алгоритм Дейкстры, который мы рассмотрим в рамках курса чуть позже, вполне себе жадный, потому что мы на каждом шагу ищем вершину с наименьшим весом, в которой мы еще не бывали, после чего обновляем значения других вершин. При этом можно доказать, что кратчайшие пути, найденные в вершинах, являются оптимальными.\n   В то же время алгоритм Флойда, который мы тоже будем рассматривать, не является примером жадного алгоритма. Флойд демонстрирует другой метод — метод динамического программирования.",
+        "   Динамическое программирование — способ решения сложных задач путём разбиения их на более простые подзадачи. Как правило, чтобы решить поставленную задачу, требуется решить отдельные части задачи (подзадачи), после чего объединить решения подзадач в одно общее решение. Часто многие из этих подзадач одинаковы. Подход динамического программирования состоит в том, чтобы решить каждую подзадачу только один раз, сократив тем самым количество вычислений. Это особенно полезно в случаях, когда число повторяющихся подзадач экспоненциально велико.",
+        "   Понимая основы динамического программирования, их можно переложить на более конкретную задачу, а именно оптимизацию программ. Рассмотрим понятия структурного программирования и декомпозиции.\n   Структурным программированием называется разработка программ с помощью представления их в виде иерархической структуры блоков. Эта парадигма разработана в 70-х годах XX века Э. Дейкстрой и Н. Виртом. Любая программа представляет собой структуру, построенную из трёх типов базовых конструкций:\n   1. Последовательное исполнение — однократное выполнение операций в том порядке, в котором они записаны в тексте программы;\n   2. Ветвление — однократное выполнение одной из двух или более операций, в зависимости от выполнения некоторого заданного условия;\n   3. Цикл — многократное исполнение одной и той же операции до тех пор, пока выполняется некоторое заданное условие (условие продолжения цикла).\n   Повторяющиеся фрагменты программы (либо не повторяющиеся, но представляющие собой логически целостные вычислительные блоки) могут оформляться в виде т. н. подпрограмм (процедур или функций). В этом случае в тексте основной программы, вместо помещённого в подпрограмму фрагмента, вставляется инструкция вызова подпрограммы. При выполнении такой инструкции выполняется вызванная подпрограмма, после чего исполнение программы продолжается с инструкции, следующей за командой вызова подпрограммы. Разработка программы ведётся пошагово, методом «сверху вниз».",
+        "   В основе структурного программирования лежит декомпозиция (разбиение на части) сложных систем с целью последующей реализации в виде отдельных небольших (до 40-50 операторов) подпрограмм. В отличие от используемого ранее интуитивного подхода к декомпозиции, структурный подход требовал представления задачи в виде иерархии подзадач простейшей структуры, для получения которой рекомендовалось применять метод пошаговой детализации. С появлением других принципов декомпозиции (объектного, логического и т.д.) данный способ получил название процедурной декомпозиции. Метод пошаговой детализации заключается в следующем:\n   Определяется общая структура программы в виде одного из трех вариантов, показанных на рисунке ниже, а именно:\n   1. Последовательности подзадач (например, ввод данных, преобразование данных, вывод данных);\n   2. Альтернативы подзадач (например, добавление записей к файлу или их поиск);\n   3. Повторения подзадачи (например, циклически повторяемая обработка данных).\n   Каждая подзадача, в свою очередь, разбивается на подзадачи с использованием тех же структур. Процесс продолжается, пока на очередном уровне не получается простейшая подзадача, которая достаточно просто реализуется средствами используемого языка (1-2 управляющих оператора языка).\n   Данный подход крайне схож с методом динамического программирования, описанного ранее.",
+        "   Для рассмотрения оценки сложности алгоритмов на конкретном примере, в данном сегменте курса мы рассмотрим понятия, связанные с маршрутами в графах, а также разберем два алгоритма обхода и поиска кратчайших расстояний.",
+      ];
+      var index = 0;
+      var isVisibleAfter = true;
+
+      var skinColor = "#e5ded6"; //"#EAEAE3""#272727""black"
+      var dark = "#222222"; //"#fde401""white""#6303F7"
+      var orange = "#FE6C21"; //"#ff652f"
+
+      var images = [
+        "https://raw.githubusercontent.com/pave228/Babylon/main/babylon.png",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/Politech.png",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/typing.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/BigO.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/dynamicprog.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/struct.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/decomp.jpg",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/electric.png",
+        "https://raw.githubusercontent.com/pave228/Babylon/main/%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D0%B0-%D0%BA%D0%BE%D0%BC%D0%BF%D0%B0%D0%BD%D0%B8%D0%B8.png",
+      ];
+
+      var setImage = function (imageIndex, rect, width, height) {
+        var image = new BABYLON.GUI.Image("img", images[imageIndex]);
+        image.width = width;
+        image.height = height;
+        image.outlineWidth = "4px";
+        image.paddingBottom = "10px";
+        rect.addControl(image);
+      };
+
+      var preScene = function (scene) {
+        //Функция создания необходимых элементов сцены
+        var camera = new BABYLON.ArcRotateCamera(
+          "camera",
+          Math.PI / 3,
+          Math.PI / 3,
+          10,
+          BABYLON.Vector3.Zero(),
+          scene
+        );
+
+        camera.setTarget(BABYLON.Vector3.Zero());
+
+        camera.attachControl(canvas, true);
+
+        const light = new BABYLON.HemisphericLight(
+          "light",
+          new BABYLON.Vector3(0, 1, 0),
+          scene
+        );
+        light.intensity = 0.7;
+      };
+
+      var textWindowFullScreen = function () {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var rectInput = new BABYLON.GUI.Rectangle();
+        rectInput.width = "100%";
+        rectInput.height = "100%";
+        //rectInput.cornerRadius = 10;
+        //rectInput.color = "green";
+        rectInput.thickness = 0;
+        //rectInput.background = skinColor;
+
+        var placeholder1 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_left_bottom.jpg"
+        );
+        placeholder1.width = "1352px";
+        placeholder1.height = "806px";
+        placeholder1.top = "280px";
+        placeholder1.left = "-700px";
+        placeholder1.outlineWidth = "0px";
+
+        var placeholder2 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_left_top.jpg"
+        );
+        placeholder2.width = "1227px";
+        placeholder2.height = "629px";
+        placeholder2.top = "-500px";
+        placeholder2.left = "-650px";
+        placeholder2.outlineWidth = "0px";
+
+        var placeholder3 = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/placeholder_right_top.jpg"
+        );
+        placeholder3.width = "1338px";
+        placeholder3.height = "960px";
+        placeholder3.top = "-400px";
+        placeholder3.left = "650px";
+        placeholder3.outlineWidth = "0px";
+
+        placeholder1.alpha = 0.1;
+        placeholder2.alpha = 0.15;
+        placeholder3.alpha = 0.1;
+        rectInput.addControl(placeholder1);
+        rectInput.addControl(placeholder2);
+        rectInput.addControl(placeholder3);
+
+        var gradientDefault = new BABYLON.GUI.LinearGradient(0, 0, 400, 400);
+        gradientDefault.addColorStop(0, skinColor);
+        gradientDefault.addColorStop(1, skinColor);
+        rectInput.backgroundGradient = gradientDefault;
+
+        var title = new BABYLON.GUI.TextBlock();
+        title.width = "90%";
+        title.fontSize = "5%";
+        title.color = dark;
+        title.fontStyle = "Bold";
+        title.top = "-45%";
+        title.textWrapping = true;
+        title.text = titels[index];
+        rectInput.addControl(title);
+
+        var textblock = new BABYLON.GUI.TextBlock();
+        textblock.color = dark;
+        textblock.textWrapping = true;
+        textblock.text = texts[index];
+        textblock.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        textblock.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        textblock.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        textblock.textVerticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        textblock.textWrapping = BABYLON.GUI.TextWrapping.WordWrap;
+        textblock.resizeToFit = true;
+        textblock.paddingTop = "10px";
+        textblock.paddingLeft = "30px";
+        textblock.paddingRight = "20px";
+        textblock.paddingBottom = "15px";
+        textblock.fontSize = "25";
+
+        var buttonNext = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonNext",
+          "⇨"
+        );
+        buttonNext.width = "40px";
+        buttonNext.height = "40px";
+        buttonNext.fontSize = "6%";
+        buttonNext.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        buttonNext.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonNext.top = "-20px";
+        buttonNext.left = "-20px";
+        buttonNext.color = dark;
+        buttonNext.thickness = 0;
+        //buttonNext.cornerRadius = 20;
+        buttonNext.background = skinColor;
+
+        if (index == titels.length - 1 && isVisibleAfter == true) {
+          buttonNext.onPointerClickObservable.add(function () {
+            window.open("lesson2.1.html");
+            window.close("index2.html");
+          });
+        } else if (index < titels.length - 1) {
+          buttonNext.onPointerClickObservable.add(function () {
+            rectInput.isVisible = false;
+            index++;
+            textWindowFullScreen();
+          });
+        } else {
+          buttonNext.onPointerClickObservable.add(function () {
+            rectInput.isVisible = false;
+            index++;
+          });
+        }
+
+        var buttonBack = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonBack",
+          "⇦"
+        );
+        buttonBack.width = "40px";
+        buttonBack.height = "40px";
+        buttonBack.fontSize = "6%";
+        buttonBack.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonBack.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonBack.top = "-20px";
+        buttonBack.left = "20px";
+        buttonBack.color = dark;
+        buttonBack.thickness = 0;
+        //buttonBack.cornerRadius = 30;
+        buttonBack.background = skinColor;
+
+        if (index > 0) {
+          buttonBack.onPointerClickObservable.add(function () {
+            rectInput.isVisible = false;
+            index--;
+            textWindowFullScreen();
+          });
+        } else {
+          buttonBack.isVisible = false;
+        }
+
+        var buttonHome = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonHome",
+          "⌂"
+        );
+        buttonHome.width = "40px";
+        buttonHome.height = "40px";
+        buttonHome.fontSize = "6%";
+        buttonHome.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        buttonHome.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        buttonHome.top = "-20px";
+        buttonHome.thickness = 0;
+        //buttonHome.left = "20px";
+        buttonHome.color = dark;
+        //buttonHome.cornerRadius = 30;
+        buttonHome.background = skinColor;
+
+        buttonHome.onPointerClickObservable.add(function () {
+          window.open("homePage.html");
+          window.close("index2.html");
+        });
+
+        var sv = new BABYLON.GUI.ScrollViewer();
+        sv.thickness = 1;
+        sv.color = dark;
+        sv.width = "90%";
+        sv.height = "75%";
+        sv.top = "10px";
+        sv.background = skinColor;
+        sv.clipChildren = false;
+        rectInput.addControl(sv);
+        rectInput.addControl(sv);
+
+        var stackV = new BABYLON.GUI.StackPanel();
+        stackV.isVertical = true;
+
+        stackV.addControl(textblock);
+        sv.addControl(stackV);
+
+        if (index == 0) {
+          setImage(1, stackV, "450px", "118px");
+          setImage(0, stackV, "640px", "218px");
+        } else if (index == 1) {
+          setImage(2, stackV, "512px", "307px");
+        } else if (index == 2) {
+          setImage(3, stackV, "400px", "250px");
+        } else if (index == 3) {
+          //setImage(3, stackV, "400px", "250px");
+        } else if (index == 4) {
+          setImage(4, stackV, "400px", "330px");
+        } else if (index == 5) {
+          setImage(5, stackV, "500px", "300px");
+        } else if (index == 6) {
+          setImage(6, stackV, "500px", "300px");
+        }
+
+        advancedTexture.addControl(rectInput);
+
+        rectInput.addControl(buttonNext);
+        rectInput.addControl(buttonBack);
+        rectInput.addControl(buttonHome);
+      };
+
+      var isInfoOpen = false;
+      var infoButton = function () {
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        var buttonInfo = BABYLON.GUI.Button.CreateSimpleButton(
+          "buttonInfo",
+          "i"
+        );
+        buttonInfo.width = "50px";
+        buttonInfo.height = "50px";
+        buttonInfo.fontSize = "5%";
+        buttonInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        buttonInfo.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        buttonInfo.top = "20px";
+        buttonInfo.left = "20px";
+        buttonInfo.color = "#f7f0eb";
+        buttonInfo.cornerRadius = 25;
+        buttonInfo.fontStyle = "Bold";
+        buttonInfo.background = dark;
+        advancedTexture.addControl(buttonInfo);
+
+        var rectInfo = new BABYLON.GUI.Rectangle();
+        rectInfo.width = "600px";
+        rectInfo.height = "95%";
+        rectInfo.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        rectInfo.verticalAlignment =
+          BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        rectInfo.thickness = 0;
+        rectInfo.background = dark;
+        rectInfo.isVisible = isInfoOpen;
+
+        advancedTexture.addControl(rectInfo);
+
+        var controls = new BABYLON.GUI.Image(
+          "img",
+          "https://raw.githubusercontent.com/pave228/Babylon/main/controls.png"
+        );
+        controls.width = "560px";
+        controls.height = "1475px";
+        //controls.top = "-400px";
+        //controls.left = "650px";
+        controls.outlineWidth = "0px";
+
+        var sv = new BABYLON.GUI.ScrollViewer();
+        sv.thickness = 1;
+        sv.color = dark;
+        sv.width = "98%";
+        sv.height = "98%";
+        //sv.top = "10px";
+        sv.background = dark;
+        sv.clipChildren = false;
+        rectInfo.addControl(sv);
+        rectInfo.addControl(sv);
+
+        var stackV = new BABYLON.GUI.StackPanel();
+        stackV.isVertical = true;
+
+        stackV.addControl(controls);
+        sv.addControl(stackV);
+
+        buttonInfo.onPointerClickObservable.add(function () {
+          if (isInfoOpen == 0) {
+            buttonInfo.isVisible = false;
+            isInfoOpen = true;
+            infoButton();
+            rectInfo.isVisible = false;
+
+            console.log(isInfoOpen);
+          } else {
+            buttonInfo.isVisible = false;
+            isInfoOpen = false;
+            infoButton();
+            rectInfo.isVisible = false;
+
+            console.log(isInfoOpen);
+          }
+        });
+      };
+
+
+      var createScene = function () {
+        //Функция выполнения логики программы
+        const scene = new BABYLON.Scene(engine);
+        preScene(scene);
+        textWindowFullScreen();
+
+        infoButton()
+        return scene;
+      };
+      window.initFunction = async function () {
+        var asyncEngineCreation = async function () {
+          try {
+            return createDefaultEngine();
+          } catch (e) {
+            console.log(
+              "the available createEngine function failed. Creating the default engine instead"
+            );
+            return createDefaultEngine();
+          }
+        };
+
+        window.engine = await asyncEngineCreation();
+        if (!engine) throw "engine should not be null.";
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();
+      };
+      initFunction().then(() => {
+        sceneToRender = scene;
+      });
+
+      // Resize
+      window.addEventListener("resize", function () {
+        engine.resize();
+      });
+    </script>
+  </body>
+</html>
